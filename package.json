@@ -1,0 +1,28 @@
+{
+  "name": "oleb",
+  "version": "1.0.0",
+  "description": "Oleb est une interface de gestion de serveurs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SuperAtraction/Oleb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SuperAtraction/Oleb/issues"
+  },
+  "homepage": "https://github.com/SuperAtraction/Oleb#readme",
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "dockerode": "^4.0.2",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "smb2": "^0.2.11",
+    "socket.io": "^4.7.5"
+  }
+}

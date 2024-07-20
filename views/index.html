@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des VMs et Docker</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <style>
+        #upload-form {
+            display: none;
+        }
+        .disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        #uploadComplete {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Gestion des VMs et Docker</h1>
+        <div class="mt-4">
+            <button id="installHassBtn" class="btn btn-primary" onclick="showInstallHass()">Installer VM Hass</button>
+            <button id="createVMBtn" class="btn btn-secondary" onclick="toggleUploadForm()">Créer VM avec ISO</button>
+            <button id="manageDockerBtn" class="btn btn-info" onclick="location.href='/manage-docker'">Gestion Docker</button>
+            <button id="manageSmbBtn" class="btn btn-warning" onclick="location.href='/manage-smb'">Gestion SMB</button>
+        </div>
+        <div id="upload-form" class="mt-4">
+            <h2>Uploader un fichier ISO</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="iso" class="form-label">Fichier ISO</label>
+                    <input type="file" class="form-control" id="iso" name="iso" accept=".iso" required>
+                </div>
+                <button type="submit" id="uploadBtn" class="btn btn-primary">Uploader</button>
+            </form>
+            <div class="mt-3">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+            </div>
+        </div>
+        <div id="uploadComplete" class="mt-4 alert alert-success"></div>
+        <div id="notification" class="mt-4"></div>
+    </div>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function toggleUploadForm() {
+            const form = document.getElementById('upload-form');
+            const isFormVisible = form.style.display === 'block';
+            form.style.display = isFormVisible ? 'none' : 'block';
+            if (!isFormVisible) {
+                enableButtons(); // Activer les boutons si le formulaire est caché
+            } else {
+                disableButtons(); // Désactiver les boutons si le formulaire est visible
+            }
+        }
+
+        function showInstallHass() {
+            fetch('/install-hass')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('notification').innerText = data;
+                });
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const fileInput = document.getElementById('iso');
+            const file = fileInput.files[0];
+
+            // Validation côté client pour les fichiers ISO
+            if (file && file.name.endsWith('.iso')) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload-iso', true);
+
+                xhr.upload.addEventListener('progress', function(event) {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        const progressBar = document.getElementById('progress-bar');
+                        progressBar.style.width = percentComplete + '%';
+                        progressBar.innerText = Math.round(percentComplete) + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        document.getElementById('notification').innerText = xhr.responseText;
+                        document.getElementById('upload-form').style.display = 'none';
+                        document.getElementById('uploadComplete').innerText = 'Upload terminé';
+                        document.getElementById('uploadComplete').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('uploadComplete').style.opacity = '0';
+                            setTimeout(() => {
+                                document.getElementById('uploadComplete').style.display = 'none';
+                                document.getElementById('uploadComplete').style.opacity = '1';
+                                enableButtons(); // Réactiver les boutons après l'upload
+                            }, 1000);
+                        }, 5000);
+                        document.getElementById('progress-bar').style.width = '0%';
+                        document.getElementById('progress-bar').innerText = '0%';
+                    } else {
+                        document.getElementById('notification').innerText = 'Erreur lors du téléchargement.';
+                    }
+                });
+
+                xhr.send(formData);
+            } else {
+                alert('Veuillez sélectionner un fichier ISO valide.');
+            }
+        });
+
+        function disableButtons() {
+            // Désactiver uniquement les quatre boutons principaux
+            ['installHassBtn', 'createVMBtn', 'manageDockerBtn', 'manageSmbBtn'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) {
+                    button.classList.add('disabled');
+                    button.disabled = true;
+                }
+            });
+        }
+
+        function enableButtons() {
+            // Réactiver uniquement les quatre boutons principaux
+            ['installHassBtn', 'createVMBtn', 'manageDockerBtn', 'manageSmbBtn'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) {
+                    button.classList.remove('disabled');
+                    button.disabled = false;
+                }
+            });
+        }
+
+        socket.on('installationComplete', (message) => {
+            document.getElementById('notification').innerText = message;
+        });
+    </script>
+</body>
+</html>
